@@ -20,12 +20,22 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
   try {
-    console.log(`🔄 Registering ${commands.length} commands...`);
-    const route = process.env.GUILD_ID
-      ? Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID)
-      : Routes.applicationCommands(process.env.CLIENT_ID);
+    const clientId = process.env.CLIENT_ID;
+    const guildId = process.env.GUILD_ID;
 
-    await rest.put(route, { body: commands });
+    if (guildId) {
+      // ギルドに登録し、グローバルコマンドをクリア（重複防止）
+      console.log(`🔄 Registering ${commands.length} guild commands (guild: ${guildId})...`);
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+      console.log('🧹 Clearing global commands...');
+      await rest.put(Routes.applicationCommands(clientId), { body: [] });
+    } else {
+      // グローバルに登録し、ギルドコマンドをクリア（登録済みギルドは不明なため手動対応が必要）
+      console.log(`🔄 Registering ${commands.length} global commands...`);
+      await rest.put(Routes.applicationCommands(clientId), { body: commands });
+      console.log('ℹ️  Note: Guild-scoped commands (if any) must be cleared manually per guild.');
+    }
+
     console.log('✅ Commands registered successfully!');
   } catch (err) {
     console.error(err);
