@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const { masterChannels } = require('../../database');
+const { config, format } = require('../../config');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -22,20 +23,15 @@ module.exports = {
   async execute(interaction) {
     const master   = interaction.options.getChannel('master');
     const category = interaction.options.getChannel('category');
-
     const masterRecord = masterChannels.getByChannel.get(master.id);
     if (!masterRecord || masterRecord.guild_id !== interaction.guildId) {
-      return interaction.reply({
-        content: '❌ 指定したチャンネルはマスターチャンネルではありません。',
-        ephemeral: true,
-      });
+      return interaction.reply({ content: config.messages.notMasterChannel, ephemeral: true });
     }
-
     masterChannels.updateCategory.run(category.id, master.id);
-
     return interaction.reply({
-      content: `✅ カテゴリを <#${category.id}> に設定しました。`,
+      content: format(config.messages.categorySet, { category: category.id }),
       ephemeral: true,
     });
   },
 };
+

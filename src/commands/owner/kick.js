@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getOwnedTempChannel } = require('../../utils/checks');
+const { config, format } = require('../../config');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,19 +13,21 @@ module.exports = {
   async execute(interaction) {
     const tempRecord = getOwnedTempChannel(interaction.guildId, interaction.user.id);
     if (!tempRecord) {
-      return interaction.reply({ content: '❌ あなたが所有する一時チャンネルが見つかりません。', ephemeral: true });
+      return interaction.reply({ content: config.messages.noOwnedChannel, ephemeral: true });
     }
-
     const target = interaction.options.getMember('user');
-    if (!target) return interaction.reply({ content: '❌ ユーザーが見つかりません。', ephemeral: true });
+    if (!target) return interaction.reply({ content: config.messages.userNotFound, ephemeral: true });
     if (target.id === interaction.user.id) {
-      return interaction.reply({ content: '❌ 自分自身はキックできません。', ephemeral: true });
+      return interaction.reply({ content: config.messages.kickSelf, ephemeral: true });
     }
     if (target.voice.channelId !== tempRecord.channel_id) {
-      return interaction.reply({ content: '❌ そのユーザーはチャンネルにいません。', ephemeral: true });
+      return interaction.reply({ content: config.messages.kickNotIn, ephemeral: true });
     }
-
     await target.voice.disconnect();
-    return interaction.reply({ content: `👢 <@${target.id}> をチャンネルから切断しました。`, ephemeral: true });
+    return interaction.reply({
+      content: format(config.messages.kicked, { user: target.id }),
+      ephemeral: true,
+    });
   },
 };
+

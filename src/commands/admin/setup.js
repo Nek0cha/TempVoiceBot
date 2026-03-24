@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const { masterChannels } = require('../../database');
+const { config, format } = require('../../config');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -35,30 +36,26 @@ module.exports = {
     if (sub === 'create') {
       const name     = interaction.options.getString('name');
       const category = interaction.options.getChannel('category');
-
       const channel = await interaction.guild.channels.create({
         name,
         type: ChannelType.GuildVoice,
         parent: category ?? null,
       });
-
       masterChannels.upsert.run({ guildId: interaction.guildId, channelId: channel.id, categoryId: category?.id ?? null, template: '%owner%のチャンネル' });
-
       return interaction.reply({
-        content: `✅ マスターチャンネル <#${channel.id}> を作成しました。`,
+        content: format(config.messages.setupCreated, { channel: channel.id }),
         ephemeral: true,
       });
     }
 
     if (sub === 'register') {
       const channel = interaction.options.getChannel('channel');
-
       masterChannels.upsert.run({ guildId: interaction.guildId, channelId: channel.id, categoryId: channel.parentId ?? null, template: '%owner%のチャンネル' });
-
       return interaction.reply({
-        content: `✅ <#${channel.id}> をマスターチャンネルとして登録しました。`,
+        content: format(config.messages.setupRegistered, { channel: channel.id }),
         ephemeral: true,
       });
     }
   },
 };
+

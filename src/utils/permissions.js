@@ -19,8 +19,10 @@ async function applyVCPermissions(voiceChannel, guild, record) {
   const banned   = JSON.parse(record.banned_users || '[]');
 
   // @everyone overwrite
-  const everyoneView    = !record.is_hidden  && !record.is_private;
-  const everyoneConnect = !record.is_locked  && !record.is_private;
+  // is_private は「非公開（ViewChannel + Connect 両方 deny）」を担い、
+  // hide/show は private に統合されたため is_hidden は参照しない。
+  const everyoneView    = !record.is_private;
+  const everyoneConnect = !record.is_locked && !record.is_private;
 
   const overwrites = [
     {

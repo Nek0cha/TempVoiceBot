@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getOwnedTempChannel } = require('../../utils/checks');
+const { config, format } = require('../../config');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,14 +13,17 @@ module.exports = {
   async execute(interaction) {
     const tempRecord = getOwnedTempChannel(interaction.guildId, interaction.user.id);
     if (!tempRecord) {
-      return interaction.reply({ content: '❌ あなたが所有する一時チャンネルが見つかりません。', ephemeral: true });
+      return interaction.reply({ content: config.messages.noOwnedChannel, ephemeral: true });
     }
-
     const voiceChannel = interaction.guild.channels.cache.get(tempRecord.channel_id);
-    if (!voiceChannel) return interaction.reply({ content: '❌ チャンネルが見つかりません。', ephemeral: true });
+    if (!voiceChannel) return interaction.reply({ content: config.messages.channelNotFound, ephemeral: true });
 
     const kbps = interaction.options.getInteger('value');
     await voiceChannel.setBitrate(kbps * 1000);
-    return interaction.reply({ content: `✅ ビットレートを ${kbps}kbps に設定しました。`, ephemeral: true });
+    return interaction.reply({
+      content: format(config.messages.bitrateSet, { kbps }),
+      ephemeral: true,
+    });
   },
 };
+

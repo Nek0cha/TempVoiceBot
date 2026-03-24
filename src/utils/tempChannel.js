@@ -1,6 +1,7 @@
 const { PermissionFlagsBits, ChannelType } = require('discord.js');
 const { db } = require('../database');
 const { buildPanel } = require('./panel');
+const { config, format } = require('../config');
 
 // Per-user creation lock to prevent race conditions
 const creationLocks = new Set();
@@ -41,8 +42,13 @@ async function createTempChannel(guild, member, masterConfig) {
       ],
     });
 
+    const textChannelName = format(
+      config.panel.textChannelTemplate || 'vc-{vcname}',
+      { vcname: channelName, owner: member.displayName, counter: count },
+    ).slice(0, 100);
+
     const textChannel = await guild.channels.create({
-      name: `vc-${channelName}`.slice(0, 100),
+      name: textChannelName,
       type: ChannelType.GuildText,
       parent: category,
       permissionOverwrites: [
@@ -64,8 +70,8 @@ async function createTempChannel(guild, member, masterConfig) {
     await member.voice.setChannel(voiceChannel);
 
     const panelMessage = await textChannel.send({
-      content: `👋 <@${member.id}> の一時チャンネルが作成されました。`,
-      components: [buildPanel()],
+      content: format(config.panel.welcomeMessage, { owner: member.id }),
+      components: buildPanel(),
     });
 
     db.prepare(`
