@@ -31,10 +31,11 @@ module.exports = {
 
     // ── ボタン ──────────────────────────────────────────────────────────────
     if (interaction.isButton()) {
+      try {
       const tempRecord = db
         .prepare('SELECT * FROM temp_channels WHERE text_channel_id = ?')
         .get(interaction.channelId);
-      if (!tempRecord) return;
+      if (!tempRecord) return interaction.reply({ content: config.messages.channelNotFound, ephemeral: true });
 
       // vc_claim だけは非オーナー（VC 参加中の誰でも）が操作可能
       if (interaction.customId !== 'vc_claim' && tempRecord.owner_id !== interaction.user.id) {
@@ -186,16 +187,30 @@ module.exports = {
           );
           return interaction.reply({ content: config.messages.selectTransfer, components: [row], ephemeral: true });
         }
+
+        default:
+          return interaction.reply({ content: config.messages.channelNotFound, ephemeral: true });
+      }
+      } catch (err) {
+        console.error(`Button error [${interaction.customId}]:`, err);
+        const msg = { content: config.messages.commandError, ephemeral: true };
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(msg).catch(() => {});
+        } else {
+          await interaction.reply(msg).catch(() => {});
+        }
       }
       return;
     }
 
     // ── モーダル送信 ────────────────────────────────────────────────────────
     if (interaction.isModalSubmit()) {
+      try {
       const tempRecord = db
         .prepare('SELECT * FROM temp_channels WHERE text_channel_id = ?')
         .get(interaction.channelId);
-      if (!tempRecord || tempRecord.owner_id !== interaction.user.id) return;
+      if (!tempRecord) return interaction.reply({ content: config.messages.channelNotFound, ephemeral: true });
+      if (tempRecord.owner_id !== interaction.user.id) return interaction.reply({ content: config.messages.ownerOnly, ephemeral: true });
 
       const voiceChannel = interaction.guild.channels.cache.get(tempRecord.channel_id);
       if (!voiceChannel) return interaction.reply({ content: config.messages.channelNotFound, ephemeral: true });
@@ -234,14 +249,26 @@ module.exports = {
         });
       }
       return;
+      } catch (err) {
+        console.error(`Modal error [${interaction.customId}]:`, err);
+        const msg = { content: config.messages.commandError, ephemeral: true };
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(msg).catch(() => {});
+        } else {
+          await interaction.reply(msg).catch(() => {});
+        }
+      }
+      return;
     }
 
     // ── ユーザー選択メニュー ────────────────────────────────────────────────
     if (interaction.isUserSelectMenu()) {
+      try {
       const tempRecord = db
         .prepare('SELECT * FROM temp_channels WHERE text_channel_id = ?')
         .get(interaction.channelId);
-      if (!tempRecord || tempRecord.owner_id !== interaction.user.id) return;
+      if (!tempRecord) return interaction.reply({ content: config.messages.channelNotFound, ephemeral: true });
+      if (tempRecord.owner_id !== interaction.user.id) return interaction.reply({ content: config.messages.ownerOnly, ephemeral: true });
 
       const voiceChannel = interaction.guild.channels.cache.get(tempRecord.channel_id);
       if (!voiceChannel) return;
@@ -312,6 +339,17 @@ module.exports = {
           content: format(config.messages.transferred, { user: targetId }),
           components: [],
         });
+      }
+      } catch (err) {
+        console.error(`SelectMenu error [${interaction.customId}]:`, err);
+        const msg = { content: config.messages.commandError, ephemeral: true };
+        try {
+          if (interaction.replied || interaction.deferred) {
+            await interaction.followUp(msg);
+          } else {
+            await interaction.reply(msg);
+          }
+        } catch {}
       }
     }
   },
